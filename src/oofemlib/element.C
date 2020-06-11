@@ -838,6 +838,16 @@ Element :: initForNewStep()
     }
 }
 
+void
+Element :: initForAdaptiveUpdate(const FloatArray &statusData)
+{
+    for ( auto &iRule: integrationRulesArray ) {
+        for ( auto &gp: *iRule ) {
+            this->giveCrossSection()->giveMaterial(gp)->initTempStatusFromData(gp, statusData);
+        }
+    }
+}
+
 
 IntArray
 Element::giveBoundaryEdgeNodes(int boundary) const

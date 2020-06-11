@@ -42,7 +42,7 @@
 #include "floatmatrixf.h"
 #include "floatarrayf.h"
 
-#include "qcmaterialextensioninterface.h"
+#include "sm/Materials/qcmaterialextensioninterface.h"
 
 #include "MixedPressure/mixedpressurematerialextensioninterface.h"
 
@@ -165,6 +165,9 @@ public:
 
     double giveQcElasticParamneter() override { return E; }
     double giveQcPlasticParamneter() override { return std :: numeric_limits< float > :: infinity(); }
+    double giveQcPlasticHardeningParamneter() override { return std :: numeric_limits< float > :: infinity(); }
+    void computeStatusDataFromStrain(FloatArray &statusData, FloatArray strain) override {} // no internal variables
+    double giveValueOfQcAdapriveRefinementCriterion(Element *e, int criterionType) override { return -1.; } // adaptive criterion is not implemented 
 
     Interface *giveInterface(InterfaceType t) override {
         if ( t == QCMaterialExtensionInterfaceType ) {

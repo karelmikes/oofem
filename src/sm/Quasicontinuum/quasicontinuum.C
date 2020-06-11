@@ -34,6 +34,7 @@
 
 #include "sm/Quasicontinuum/quasicontinuum.h"
 #include "sm/EngineeringModels/qclinearstatic.h"
+#include "sm/EngineeringModels/qcnlinearstatic.h"
 #include "qcnode.h"
 #include "element.h"
 #include "mathfem.h"
@@ -45,6 +46,9 @@
 #include "sm/Materials/anisolinearelasticmaterial.h"
 #include "interfacetype.h"
 #include "sm/Materials/qcmaterialextensioninterface.h"
+#include "sm/Materials/microplane_m1.h"
+#include "sm/Materials/microplane_m1_aniso.h"
+#include "sm/Materials/misesmattension.h"
 
 
 namespace oofem {
@@ -304,7 +308,13 @@ Quasicontinuum :: applyApproach2(Domain *d, int homMtrxType, double volumeOfInte
         em->setActivatedNodeList(nodeList, d);
         em->setActivatedElementList(elemList);
     } else {
-        OOFEM_ERROR("Quasicontinuum can be applied only in QClinearStatic engngm");
+        QcNonLinearStatic *em_nl = dynamic_cast< QcNonLinearStatic * >( d->giveEngngModel() );
+        if ( em_nl ) {
+            em_nl->setActivatedNodeList(nodeList, d);
+            em_nl->setActivatedElementList(elemList);
+        } else {
+            OOFEM_ERROR("Quasicontinuum can be applied only in QClinearStatic engngm");
+        }
     }
 
 
@@ -322,15 +332,16 @@ Quasicontinuum :: applyApproach2(Domain *d, int homMtrxType, double volumeOfInte
     d->resizeMaterials(nmat);
     std::unique_ptr<Material> mat;
     DynamicInputRecord irMat;
-    // isotropic
     if ( homMtrxType == 1 ) {
+        // isotropic
         mat = classFactory.createMaterial("IsoLE", nmat, d);
         irMat.setField(homogenizedE, _IFT_IsotropicLinearElasticMaterial_e);
         irMat.setField(homogenizedNu, _IFT_IsotropicLinearElasticMaterial_n);
         irMat.setField(0.0, _IFT_IsotropicLinearElasticMaterial_talpha);
         irMat.setField(0.0, _IFT_Material_density);
-        // anisotropic
+
     } else if ( homMtrxType == 2 ) {
+        // anisotropic
         //OOFEM_ERROR("anisotropic homog. is not inmplemented yet");
         mat = classFactory.createMaterial("AnisoLE", nmat, d);
         FloatArray stiff;
@@ -356,6 +367,22 @@ Quasicontinuum :: applyApproach2(Domain *d, int homMtrxType, double volumeOfInte
         irMat.setField(stiff, _IFT_AnisotropicLinearElasticMaterial_stiff);
         irMat.setField(alpha, _IFT_AnisotropicLinearElasticMaterial_talpha);
         irMat.setField(0.0, _IFT_Material_density);
+
+    } else if ( homMtrxType == 3 ) {
+        // microplane
+        if ( nDimensions == 3 ) { OOFEM_ERROR("microplane homogenization in 3d is not inmplemented yet") }
+        mat = classFactory.createMaterial("microplane_m1", nmat, d);
+        double microplane_S0 = 2.932018e+00; // TODO: compute homogenized S_0
+        OOFEM_WARNING("Fixed value of homogenized S_0 is used");
+        double microplane_Hn = 1.0e-6;
+        int microplane_nmp = 21;
+        irMat.setField(1.0*homogenizedE, _IFT_M1Material_e);
+        irMat.setField(microplane_S0, _IFT_M1Material_s0);
+        irMat.setField(microplane_Hn, _IFT_M1Material_hn);
+        irMat.setField(microplane_nmp, _IFT_M1Material_nmp);
+        irMat.setField(0.0, _IFT_Material_density);
+
+
     } else {
         OOFEM_ERROR("Invalid homMtrxType");
     }
@@ -400,6 +427,15 @@ Quasicontinuum :: applyApproach3(Domain *d, int homMtrxType)
     individualS0.resize(noIntEl);
     individualS0.zero();
 
+    int noLinks = d->giveNumberOfElements() - noIntEl;
+
+    // microplane allocation
+    FloatMatrix MicroplaneElementsInfoNumbers(noIntEl, noLinks+1);
+    FloatMatrix MicroplaneElementsInfoLengths(noIntEl, noLinks+1);
+    bool useMicroplane = false;
+    if (homMtrxType == 3) { // microplane
+        useMicroplane = true;
+    }
 
     // ovel all elements // TO DO improve by using list of links only
     for ( int i = 1; i <= d->giveNumberOfElements(); i++ ) {
@@ -434,7 +470,7 @@ Quasicontinuum :: applyApproach3(Domain *d, int homMtrxType)
             // link will be homogenized
             else {
                 stiffnesAssigned = false;
-                stiffnesAssigned = stiffnessAssignment(individualStiffnessTensors, individualS0, d, e, qn1, qn2);
+                stiffnesAssigned = stiffnessAssignment(individualStiffnessTensors, individualS0, MicroplaneElementsInfoNumbers, MicroplaneElementsInfoLengths, d, e, qn1, qn2);
                 //	 stiffnesAssigned = stiffnessAssignment( individualStiffnessTensors, individualS0 );
                 if ( !stiffnesAssigned ) {
                     // stiffness of this link was no successfully asigned to interpolation elements - link will be solved explicitly
@@ -461,6 +497,13 @@ Quasicontinuum :: applyApproach3(Domain *d, int homMtrxType)
                 computeStiffnessTensorOf1Link(stfTensorOf1Link, s0Of1Link, e, d);
                 individualStiffnessTensors [ interpolationElementIndices.at(masterElem) - 1 ].add(stfTensorOf1Link);
                 individualS0 [ interpolationElementIndices.at(masterElem) - 1 ] += s0Of1Link;
+                if (useMicroplane) {
+                    MicroplaneElementsInfoNumbers.at(interpolationElementIndices.at(masterElem), 1) += 1;
+                    MicroplaneElementsInfoNumbers.at(interpolationElementIndices.at(masterElem), MicroplaneElementsInfoNumbers.at(interpolationElementIndices.at(masterElem), 1)+1) = i;
+
+                    MicroplaneElementsInfoLengths.at(interpolationElementIndices.at(masterElem), 1) += 1;
+                    MicroplaneElementsInfoLengths.at(interpolationElementIndices.at(masterElem), MicroplaneElementsInfoLengths.at(interpolationElementIndices.at(masterElem), 1)+1) = d->giveElement(i)->computeVolumeAreaOrLength();
+                }
             }
 
             // hanging--repnode
@@ -480,6 +523,13 @@ Quasicontinuum :: applyApproach3(Domain *d, int homMtrxType)
                 computeStiffnessTensorOf1Link(stfTensorOf1Link, s0Of1Link, e, d);
                 individualStiffnessTensors [ interpolationElementIndices.at(masterElem) - 1 ].add(stfTensorOf1Link);
                 individualS0 [ interpolationElementIndices.at(masterElem) - 1 ] += s0Of1Link;
+                if (useMicroplane) {
+                    MicroplaneElementsInfoNumbers.at(interpolationElementIndices.at(masterElem), 1) += 1;
+                    MicroplaneElementsInfoNumbers.at(interpolationElementIndices.at(masterElem), MicroplaneElementsInfoNumbers.at(interpolationElementIndices.at(masterElem), 1)+1) = i;
+
+                    MicroplaneElementsInfoLengths.at(interpolationElementIndices.at(masterElem), 1) += 1;
+                    MicroplaneElementsInfoLengths.at(interpolationElementIndices.at(masterElem), MicroplaneElementsInfoLengths.at(interpolationElementIndices.at(masterElem), 1)+1) = d->giveElement(i)->computeVolumeAreaOrLength();
+		}
             }
 
 
@@ -527,7 +577,13 @@ Quasicontinuum :: applyApproach3(Domain *d, int homMtrxType)
         em->setActivatedNodeList(nodeList, d);
         em->setActivatedElementList(elemList);
     } else {
-        OOFEM_ERROR("Quasicontinuum can be applied only in QClinearStatic engngm");
+        QcNonLinearStatic *em_nl = dynamic_cast< QcNonLinearStatic * >( d->giveEngngModel() );
+        if ( em_nl ) {
+            em_nl->setActivatedNodeList(nodeList, d);
+            em_nl->setActivatedElementList(elemList);
+        } else {
+            OOFEM_ERROR("Quasicontinuum can be applied only in QClinearStatic engngm");
+        }
     }
 
 
@@ -585,6 +641,64 @@ Quasicontinuum :: applyApproach3(Domain *d, int homMtrxType)
             mat->initializeFrom(irMat);
             d->setMaterial(nmat, std::move(mat));
         }
+
+    } else if ( homMtrxType == 3 ) {
+        // microplane (anisotropic) - without clustering
+        if ( nDimensions == 3 ) { OOFEM_ERROR("microplane homogenization in 3d is not inmplemented yet") }
+
+	// pre-compute rotation angle Alpha for all links
+	FloatArray anglesOfLinks(noLinks);
+	double dx, dy;
+        for ( int i = 1; i <= noLinks; i++ ) {
+	  dx = d->giveElement(i)->giveNode(1)->giveCoordinate(1) - d->giveElement(i)->giveNode(2)->giveCoordinate(1);//particles(trusses(i,1),1)-particles(trusses(i,2),1);
+	  dy = d->giveElement(i)->giveNode(1)->giveCoordinate(2) - d->giveElement(i)->giveNode(2)->giveCoordinate(2);//particles(trusses(i,1),2)-particles(trusses(i,2),2);
+	  //lengthOfLinks.at(i) =  sqrt( ( dx )^2 + ( dy )^2 );
+	  if (dx == 0) {
+	    anglesOfLinks.at(i)=3.1415926535/2;
+	  } else {
+	    anglesOfLinks.at(i)=atan(dy/dx);
+	  }
+
+        }
+	
+        // loop over interp. elements - evaluate microplane properties
+        for ( int i = 1; i <= noIntEl; i++ ) {
+            nmat++;
+            auto mat = classFactory.createMaterial("microplane_m1_aniso", nmat, d);
+	    double microplane_nmp = MicroplaneElementsInfoNumbers.at(i,1);
+	    int nmp = (int)microplane_nmp;
+	    FloatArray mEn(nmp), mHn(nmp), mS0(nmp), mA(nmp), mW(nmp);
+
+	    for ( int j = 1; j <= nmp; j++ ) {
+	      double InterpElemVolume = d->giveElement(noLinks+i)->computeVolumeAreaOrLength(); // volume of interpolation element
+	      int trussNumber=(int)MicroplaneElementsInfoNumbers.at(i,j+1);
+	      QCMaterialExtensionInterface *qcmei =  static_cast< QCMaterialExtensionInterface * >( d->giveElement(trussNumber)->giveMaterial()->giveInterface(QCMaterialExtensionInterfaceType) );
+	      if ( !qcmei ) {
+		OOFEM_ERROR("Material doesn't implement the required QC interface!");
+	      }
+	      double Etruss = qcmei->giveQcElasticParamneter();
+	      double S0     = qcmei->giveQcPlasticParamneter();
+	      double Htruss = qcmei->giveQcPlasticHardeningParamneter();
+	      mEn.at(j) = Etruss;
+	      mHn.at(j) = Htruss;
+	      mS0.at(j) = S0;
+
+	      mW.at(j) = MicroplaneElementsInfoLengths.at(i,j+1)/InterpElemVolume; // linkLength/elenemtVolume
+	      mA.at(j) = anglesOfLinks.at(trussNumber);
+
+	    }
+	    irMat.setField(mEn, _IFT_M1anisoMaterial_men);
+	    irMat.setField(mS0, _IFT_M1anisoMaterial_ms0);
+	    irMat.setField(mHn, _IFT_M1anisoMaterial_mhn);
+	    irMat.setField(mA, _IFT_M1anisoMaterial_ma);
+	    irMat.setField(mW, _IFT_M1anisoMaterial_mw);
+	    irMat.setField(0.0, _IFT_Material_density);
+
+            mat->initializeFrom(irMat);
+            d->setMaterial(nmat, std::move(mat));
+        }
+
+
     } else {
         OOFEM_ERROR("Invalid homMtrxType");
     }
@@ -779,7 +893,7 @@ Quasicontinuum :: createGlobalStiffnesMatrix(FloatMatrix &D, double &S0, Domain 
 
 
 bool
-Quasicontinuum :: stiffnessAssignment(std :: vector< FloatMatrix > &individualStiffnessTensors, FloatArray &individualS0, Domain *d, Element *e, qcNode *qn1, qcNode *qn2)
+Quasicontinuum :: stiffnessAssignment(std :: vector< FloatMatrix > &individualStiffnessTensors, FloatArray &individualS0, FloatMatrix &MicroplaneElementsInfoNumbers, FloatMatrix &MicroplaneElementsInfoLengths, Domain *d, Element *e, qcNode *qn1, qcNode *qn2)
 {
     FloatMatrix stfTensorOf1Link(9, 9);
     double s0Of1Link;
@@ -803,6 +917,11 @@ Quasicontinuum :: stiffnessAssignment(std :: vector< FloatMatrix > &individualSt
         int indx = interpolationElementIndices.at(nel); // number in list of interp elem
         individualStiffnessTensors [ indx - 1 ].add(stfTensorOf1Link);
         individualS0 [ indx - 1 ] += s0Of1Link;
+        MicroplaneElementsInfoNumbers.at(indx, 1) += 1;
+        MicroplaneElementsInfoNumbers.at(indx, MicroplaneElementsInfoNumbers.at(indx, 1)+1) = e->giveNumber();
+	MicroplaneElementsInfoLengths.at(indx, 1) += 1;
+	MicroplaneElementsInfoLengths.at(indx, MicroplaneElementsInfoLengths.at(indx, 1)+1) = e->computeVolumeAreaOrLength();
+
 
         return true;
     } else {   // ends are located in different elements -> all intersected el needs to be found
@@ -835,6 +954,11 @@ Quasicontinuum :: stiffnessAssignment(std :: vector< FloatMatrix > &individualSt
             int indx = interpolationElementIndices.at(nel); // number in list of interp elem
             individualStiffnessTensors [ indx - 1 ].add(lengths.at(i), stfTensorOf1Link);
             individualS0 [ indx - 1 ] += lengths.at(i) * s0Of1Link;
+
+	    MicroplaneElementsInfoNumbers.at(indx, 1) += 1;
+	    MicroplaneElementsInfoNumbers.at(indx, MicroplaneElementsInfoNumbers.at(indx, 1)+1) = e->giveNumber();
+	    MicroplaneElementsInfoLengths.at(indx, 1) += 1;
+	    MicroplaneElementsInfoLengths.at(indx, MicroplaneElementsInfoLengths.at(indx, 1)+1) = lengths.at(i)*e->computeVolumeAreaOrLength();
         }
         return true;
     }  // ends are located in different elements
@@ -896,7 +1020,7 @@ Quasicontinuum :: computeIntersectionsOfLinkWith2DTringleElements(IntArray &inte
     switch ( numberOfIntersected ) {
     case 0:     // no intersection with this element
         lengths.push_back(0);
-        intersected.followedBy(iel);     // cislo elementu
+        intersected.followedBy(iel);     // element number
         break;
     case 1:     // link starts in this element
         iLen = distance(X1, intersectCoords[0]);
@@ -905,7 +1029,7 @@ Quasicontinuum :: computeIntersectionsOfLinkWith2DTringleElements(IntArray &inte
             intersected.followedBy(iel);
         } else {     // intersection is negligible
             lengths.push_back(0);
-            intersected.followedBy(iel);     // cislo elementu
+            intersected.followedBy(iel);     // element number
         }
         break;
     default:     // 2 or more intersections
@@ -921,13 +1045,13 @@ Quasicontinuum :: computeIntersectionsOfLinkWith2DTringleElements(IntArray &inte
             intersected.followedBy(iel);
         } else {     // intersection is negligible
             lengths.push_back(0);
-            intersected.followedBy(iel);     // cislo elementu
+            intersected.followedBy(iel);     // element number
         }
         break;
     }
 
 
-    // ftiffness assignment for the rest of the link
+    // stiffness assignment for the rest of the link
     IntArray neighboursList, alreadyTestedElemList;
     alreadyTestedElemList.clear();
 
@@ -1300,7 +1424,16 @@ Quasicontinuum :: initializeConnectivityTableForInterpolationElements(Domain *d)
     }
 }
 
-
+double
+Quasicontinuum :: computeTriangleArea2d(const FloatArray &coordsA, const FloatArray &coordsB, const FloatArray &coordsC)
+{
+  double u1 = coordsA.at(1) - coordsC.at(1);
+  double u2 = coordsA.at(2) - coordsC.at(2);
+  double v1 = coordsB.at(1) - coordsC.at(1);
+  double v2 = coordsB.at(2) - coordsC.at(2);
+  return 0.5*fabs(u1*v2-u2*v1);
+}
+  
 bool
 Quasicontinuum :: intersectionTestSegmentTrianglePlucker3D(FloatArray  &intersectCoords, const FloatArray &A, const FloatArray &B, const FloatArray &C, const FloatArray &X1, const FloatArray &X2)
 {
@@ -1588,4 +1721,230 @@ Quasicontinuum :: transformStiffnessTensorToMatrix(FloatMatrix &matrix, const Fl
         }
     }
 }
+
+
+bool
+Quasicontinuum :: applyAdaptiveUpdate(Domain *d)
+// applyAdaptiveUpdate
+{
+    bool refineFlag = false;
+    ////////////////////////////////////////
+    // find elements to refine
+
+    // add material and CS to interpolation elements
+    int nInterpelem = interpolationElementNumbers.giveSize();
+    IntArray interpolationElementRefinementLabel(nInterpelem);
+    interpolationElementRefinementLabel.zero();
+    IntArray refinedElemnts;
+    // over interpolation elements
+    for ( int i = 1; i <= nInterpelem; i++ ) {
+        int elNum = interpolationElementNumbers.at(i);
+	if ( elemList.at(elNum)==0 ) {continue; } // skip deactivated elements
+	  
+        Element *e;
+	e = d->giveElement(elNum);
+	
+	QCMaterialExtensionInterface *qcmei =  static_cast< QCMaterialExtensionInterface * >( e->giveMaterial()->giveInterface(QCMaterialExtensionInterfaceType) );
+	if ( !qcmei ) {
+	  OOFEM_ERROR("Material doesn't implement the required QC interface!");
+	}
+	double ref_crit = 1.0; // refinement threshold TODO: load from inputFile
+	int criterionType = 1; // define type of ref. criterion TODO: load from inputFile
+	double ref_val = qcmei->giveValueOfQcAdapriveRefinementCriterion(e, criterionType);
+	
+
+	// number of microplanes in plastic state
+	  if (ref_val>ref_crit) {
+	    interpolationElementRefinementLabel.at(i) = 1;
+	    refinedElemnts.followedBy(interpolationElementNumbers.at(i));
+	  }
+	
+    }
+
+    if (refinedElemnts.giveSize()>0) { // element for refinement exist
+      refineFlag = true;
+      
+      // nodes in refined element
+      IntArray refinedNodes;
+      for ( int i = 1; i <= d->giveNumberOfDofManagers(); i++ ) {
+	qcNode *qn = static_cast< qcNode * >( d->giveNode(i) );
+	qn->setAsRepnode();
+	if (refinedElemnts.contains(qn->giveMasterElementNumber())) {
+	  refinedNodes.followedBy(i);
+	}
+      }
+
+      // links connected to refined nodes
+      IntArray refinedLinks;
+      for ( int i = 1; i <= d->giveNumberOfElements(); i++ ) {
+	if ( d->giveElement(i)->giveNumberOfNodes() > 2 ) { continue; } // skip interpolation elements
+	int n1 = d->giveElement(i)->giveNode(1)->giveNumber();
+	int n2 = d->giveElement(i)->giveNode(2)->giveNumber();
+	if ( refinedNodes.contains(n1) || refinedNodes.contains(n2) ) {
+	  refinedLinks.followedBy(i);
+	}
+      }
+
+      // new hangingnodes
+      for ( int i = 1; i <= refinedLinks.giveSize(); i++ ) {
+	int n1 = d->giveElement(refinedLinks.at(i))->giveNode(1)->giveNumber();
+	int n2 = d->giveElement(refinedLinks.at(i))->giveNode(2)->giveNumber();
+	if (!refinedNodes.contains(n1)) { refinedNodes.followedBy(n1); }; // new hanging node
+	if (!refinedNodes.contains(n2)) { refinedNodes.followedBy(n2); }; // new hanging node
+      }
+
+      for ( int i=1; i<=refinedNodes.giveSize(); i++ ) {
+	nodeList.at(refinedNodes.at(i)) = 1; // activate nodes
+      }
+
+      for ( int i=1; i<=refinedLinks.giveSize(); i++ ) {
+	elemList.at(refinedLinks.at(i)) = 1; // activate links
+      }
+
+      for ( int i=1; i<=refinedElemnts.giveSize(); i++ ) {
+	elemList.at(refinedElemnts.at(i)) = 0; // deactivate interp elem
+      }
+//
+      //elemList = ;// interpelem + links	
+
+    // set up lists of active nodes and elements
+    QClinearStatic *em = dynamic_cast< QClinearStatic * >( d->giveEngngModel() );
+    if ( em ) {
+        em->setActivatedNodeList(nodeList, d);
+        em->setActivatedElementList(elemList);
+    } else {
+        QcNonLinearStatic *em_nl = dynamic_cast< QcNonLinearStatic * >( d->giveEngngModel() );
+        if ( em_nl ) {
+            em_nl->setActivatedNodeList(nodeList, d);
+            em_nl->setActivatedElementList(elemList);
+        } else {
+            OOFEM_ERROR("Quasicontinuum can be applied only in QClinearStatic engngm");
+        }
+    }
+
+    /*
+    // refined nodes - project DOFs
+    for ( int i = 1; i <= refinedNodes.giveSize(); i++ ) {
+      //Node *n = d->giveNode(refinedNodes.at(i));
+      qcNode *n = dynamic_cast< qcNode * >( d->giveNode(refinedNodes.at(i)) );
+      if ( !n ) { OOFEM_ERROR("Only QcNodes are suppoted in QC refinement"); }
+
+      // activate node in QC, set as repnode
+      //n->setAsRepnode();
+      
+      
+      // interpolare displacement - xxxx remove
+      int MasterElementNumber = n->giveMasterElementNumber();
+      FloatArray coords = n->giveCoordinates();
+      
+      Node *n1 = d->giveElement(MasterElementNumber)->giveNode(1);
+      Node *n2 = d->giveElement(MasterElementNumber)->giveNode(2);
+      Node *n3 = d->giveElement(MasterElementNumber)->giveNode(3);
+      FloatArray coords1 = n1->giveCoordinates();
+      FloatArray coords2 = n2->giveCoordinates();
+      FloatArray coords3 = n3->giveCoordinates();
+
+      // areas
+      double A, A1, A2, A3;
+      if (this->nDimensions==2) {
+	A = this->computeTriangleArea2d(coords1, coords2, coords3);
+	A1 = this->computeTriangleArea2d(coords, coords2, coords3)/A;
+	A2 = this->computeTriangleArea2d(coords1, coords, coords3)/A;
+	A3 = this->computeTriangleArea2d(coords1, coords2, coords)/A;
+      } else {
+	OOFEM_ERROR("QC refinement is not implemented in 3d");
+      }
+
+      // displacements
+      TimeStep *tStep = d->giveEngngModel()->giveCurrentStep();
+      FloatArray u1, u2, u3;      
+      n1->giveUnknownVectorOfType(u1, DisplacementVector, VM_Total, tStep);
+      n2->giveUnknownVectorOfType(u2, DisplacementVector, VM_Total, tStep);
+      n3->giveUnknownVectorOfType(u3, DisplacementVector, VM_Total, tStep);
+
+      FloatArray un;      
+      n->giveUnknownVectorOfType(un, DisplacementVector, VM_Total, tStep);
+
+      
+      FloatArray u(3);
+      u.at(1) = A1*u1.at(1) +  A2*u2.at(1) +  A3*u3.at(1);
+      u.at(2) = A1*u1.at(2) +  A2*u2.at(2) +  A3*u3.at(2);
+      u.at(3) = A1*u1.at(3) +  A2*u2.at(3) +  A3*u3.at(3);
+      
+      // set value of DOFs
+      // ...
+      // ...
+      //n->;
+    }// for refined nodes
+    */
+
+    
+    // refined links - project internal variables (plStrain)     initialize new elements mat status?
+    for ( int i = 1; i <= refinedLinks.giveSize(); i++ ) {
+      Element *e = d->giveElement(refinedLinks.at(i));
+      Node *n1 = e->giveNode(1);
+      Node *n2 = e->giveNode(2);
+      FloatArray coords1 = n1->giveCoordinates();
+      FloatArray coords2 = n2->giveCoordinates();
+      // displacements
+      TimeStep *tStep = d->giveEngngModel()->giveCurrentStep();
+      FloatArray u1, u2;      
+
+      n1->giveUnknownVectorOfType(u1, DisplacementVector, VM_Total, tStep);
+      n2->giveUnknownVectorOfType(u2, DisplacementVector, VM_Total, tStep);
+      // compute link strain
+      double length = sqrt( (coords2.at(1)-coords1.at(1))*(coords2.at(1)-coords1.at(1)) + (coords2.at(2)-coords1.at(2))*(coords2.at(2)-coords1.at(2)) );
+      double cos = (coords2.at(1)-coords1.at(1))/length;
+      double sin = (coords2.at(2)-coords1.at(2))/length;
+      double du = (u2.at(1)-u1.at(1))*cos + (u2.at(2)-u1.at(2))*sin; // displacements projected into link direction
+      FloatArray linkStrain(1);
+      linkStrain.at(1) = du/length;      
+      // compute internal variables from linkStrain
+      FloatArray statusData(1); // vector of internal variables
+      statusData.zero();
+      QCMaterialExtensionInterface *qcmei =  static_cast< QCMaterialExtensionInterface * >( e->giveMaterial()->giveInterface(QCMaterialExtensionInterfaceType) );
+      if ( !qcmei ) { OOFEM_ERROR("Material doesn't implement the required QC interface!"); }
+      qcmei->computeStatusDataFromStrain(statusData, linkStrain);
+
+      // update mat status according to statusData vector
+      //e->initForNewStep(); ??? not necessary
+      e->initForAdaptiveUpdate(statusData); 
+
+    }// for refined links
+
+
+
+    
+    // test element 1 TODO foe all elem...........
+    //for ( auto &gp :  *d->giveElement(1)->giveDefaultIntegrationRulePtr() ) {	
+	  //int j;
+	  
+	  //MisesMatTensionStatus *status = dynamic_cast< MisesMatTensionStatus * >(  d->giveElement(1)->giveMaterial()->giveStatus(gp) );
+	  //	  j=1;
+	  // try :     ... status->initTempStatus(gp);
+	  
+	  //p d->giveElement(1)->giveMaterial()->giveStatus(gp)->
+	  // cast to misestension
+	  // set pl strain and other???
+	  //	}
+
+
+    
+
+
+
+      
+      
+    } // if element for refinement exist
+
+    
+    return refineFlag;
+
+
+
+}
+
+
+
+
 } // end namespace oofem

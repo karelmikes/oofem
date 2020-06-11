@@ -53,7 +53,7 @@ namespace oofem {
 REGISTER_ExportModule(QuasicontinuumVTKXMLExportModule)
 
 
-QuasicontinuumVTKXMLExportModule :: QuasicontinuumVTKXMLExportModule(int n, EngngModel *e) : VTKXMLExportModule(n, e), internalVarsToExport(), primaryVarsToExport()
+QuasicontinuumVTKXMLExportModule :: QuasicontinuumVTKXMLExportModule(int n, EngngModel *e) : VTKXMLExportModule(n, e), internalVarsToExport(), primaryVarsToExport(), cellVarsToExport()
 {}
 
 
@@ -250,4 +250,28 @@ QuasicontinuumVTKXMLExportModule :: initRegionNodeNumbering(IntArray &regionG2LN
 
     return 1;
 }
+
+void
+QuasicontinuumVTKXMLExportModule::exportCellVars_km(VTKPiece &vtkPiece, const IntArray &elems, TimeStep *tStep)
+{
+    Domain *d = emodel->giveDomain(1);
+    FloatArray valueArray;
+
+    vtkPiece.setNumberOfCellVarsToExport(cellVarsToExport.giveSize(), elems.giveSize() );
+    for ( int field = 1; field <= cellVarsToExport.giveSize(); field++ ) {
+        InternalStateType type = ( InternalStateType ) cellVarsToExport.at(field);
+
+        for ( int subIndex = 1; subIndex <= elems.giveSize(); ++subIndex ) {
+            Element *el = d->giveElement(elems.at(subIndex) );  ///@todo should be a pointer to an element in the region /JB
+            if ( el->giveParallelMode() != Element_local ) {
+                continue;
+            }
+
+            this->getCellVariableFromIS(valueArray, el, type, tStep);
+	    vtkPiece.setCellVar(field, subIndex, valueArray);
+
+        }
+    }
+}
+  
 } // end namespace oofem

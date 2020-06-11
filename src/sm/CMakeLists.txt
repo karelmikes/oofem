@@ -175,6 +175,7 @@ set (sm_emodel
     EngineeringModels/freewarping.C 
     EngineeringModels/structuralmaterialevaluator.C
     EngineeringModels/qclinearstatic.C
+    EngineeringModels/qcnlinearstatic.C
     )
 
 set (sm_loads
@@ -234,6 +235,7 @@ set (sm_material
     Materials/mooneyrivlin.C
     Materials/m4.C
     Materials/microplane_m1.C
+    Materials/microplane_m1_aniso.C
     Materials/druckerPragerPlasticitySM.C
     Materials/druckerpragercutmat.C
     Materials/j2mat.C
@@ -241,6 +243,8 @@ set (sm_material
     Materials/micromaterial.C
     Materials/hyperelasticmaterial.C
     Materials/misesmat.C 
+    Materials/misesmattension.C 
+    #Materials/testmaterial.C 
     Materials/misesmatgrad.C 
     Materials/misesmatnl.C
     Materials/rankinemat.C

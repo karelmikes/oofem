@@ -789,6 +789,10 @@ public:
      */
     virtual void initForNewStep();
     /**
+     * Initializes receivers state after adaptive update.
+     */
+    virtual void initForAdaptiveUpdate(const FloatArray &statusData);
+    /**
      * Returns the element geometry type.
      * This information is assumed to be of general interest, but
      * it is required only for some specialized tasks.

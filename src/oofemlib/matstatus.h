@@ -37,6 +37,9 @@
 
 #include "integrationpointstatus.h"
 
+#include "floatarray.h"
+
+
 namespace oofem {
 class GaussPoint;
 class Dictionary;
@@ -97,6 +100,7 @@ public:
      * previously reached equilibrium internal variables.
      */
     virtual void initTempStatus() { }
+    virtual void initTempStatusFromData(const FloatArray &statusData) { }
     /**
      * Update equilibrium history variables according to temp-variables.
      * Invoked, after new equilibrium state has been reached.

@@ -93,6 +93,8 @@ public:
 
     void printOutputAt(FILE *file, TimeStep *tStep) const override;
 
+    void initTempStatusFromData(const FloatArray &statusData) override {OOFEM_ERROR("not implemented for this material status");}    
+
     void initTempStatus() override;
     void updateYourself(TimeStep *tStep) override;
 

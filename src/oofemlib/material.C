@@ -232,6 +232,15 @@ Material :: initTempStatus(GaussPoint *gp) const
     }
 }
 
+void
+Material :: initTempStatusFromData(GaussPoint *gp, const FloatArray &statusData) const
+{
+    MaterialStatus *status = this->giveStatus(gp);
+    if ( status ) {
+        status->initTempStatusFromData(statusData);
+    }
+}
+
 
 int
 Material :: initMaterial(Element *element)

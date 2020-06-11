@@ -36,6 +36,7 @@
 
 #include "qcnode.h"
 #include "sm/EngineeringModels/qclinearstatic.h"
+#include "sm/EngineeringModels/qcnlinearstatic.h"
 #include "hangingnode.h"
 #include "slavedof.h"
 #include "floatarray.h"
@@ -80,7 +81,21 @@ void qcNode :: initializeFrom(InputRecord &ir)
             }
         }
     } else {
-        OOFEM_ERROR("\"qcNode\" can be used only in \"QClinearStatic\" EngngModel");
+        QcNonLinearStatic *em_nl = dynamic_cast< QcNonLinearStatic * >( this->giveDomain()->giveEngngModel() );
+        if ( em_nl ) {
+            if ( em_nl->giveQcApproachNumber() == 0 ) {
+                this->setAsRepnode();
+            } else {
+                // set node type according to fullsolveddomain
+                if ( this->initializeAsRepnode() ) {
+                    this->setAsRepnode();
+                } else {
+                    this->setAsHanging();
+                }
+            }
+        } else {  
+            OOFEM_ERROR("\"qcNode\" can be used only in \"QClinearStatic\" EngngModel");
+        }
     }
 #else
     OOFEM_ERROR("\"qcNode\" can be used only in \"QClinearStatic\" EngngModel");
@@ -225,13 +240,22 @@ qcNode :: initializeAsRepnode()
   
 #ifdef __SM_MODULE
     QClinearStatic *em = dynamic_cast<  QClinearStatic * >( this->giveDomain()->giveEngngModel() );
-    if ( !em ) {
-        OOFEM_ERROR("qcNode is used in unsupported Engineering Models");
-    }
+    if (em) {
+        if ( em->nodeInFullSolvedDomainTest(this) ) {
+            return true;
+        }
+    } else {
+        QcNonLinearStatic *em_nl = dynamic_cast<  QcNonLinearStatic * >( this->giveDomain()->giveEngngModel() );
+        if ( em_nl ) {
+            if ( em_nl->nodeInFullSolvedDomainTest(this) ) {
+                return true;
+            }
+        } else {
+            OOFEM_ERROR("qcNode is used in unsupported Engineering Models");
+        }
+    } 
+
     
-    if ( em->nodeInFullSolvedDomainTest(this) ) {
-        return true;
-    }
 
     //else
     return false;

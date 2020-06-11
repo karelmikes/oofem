@@ -72,13 +72,15 @@ public:
     void createGlobalStiffnesMatrix(FloatMatrix &Diso, double &S0, Domain *d, int homMtrxType,  double volumeOfInterpolationMesh);
 
     void computeStiffnessTensorOf1Link(FloatMatrix &D1, double &S0, Element *e, Domain *d);
-    bool stiffnessAssignment( std::vector<FloatMatrix> &individualStiffnessTensors, FloatArray &individialS0, Domain *d, Element *e, qcNode *qn1, qcNode *qn2 );
+    bool stiffnessAssignment( std::vector<FloatMatrix> &individualStiffnessTensors, FloatArray &individialS0, FloatMatrix &MicroplaneElementsInfoNumbers, FloatMatrix &MicroplaneElementsInfoLengths, Domain *d, Element *e, qcNode *qn1, qcNode *qn2 );
 
     void computeIntersectionsOfLinkWithInterpElements( IntArray &intersected, FloatArray &lengths, Domain *d, Element *e, qcNode *qn1, qcNode *qn2);
     bool computeIntersectionsOfLinkWith2DTringleElements( IntArray &intersected, FloatArray &lengths, Domain *d, Element *e, qcNode *qn1, qcNode *qn2);
     bool computeIntersectionsOfLinkWith3DTetrahedraElements( IntArray &intersected, FloatArray &lengths, Domain *d, Element *e, qcNode *qn1, qcNode *qn2);
 
     void initializeConnectivityTableForInterpolationElements( Domain *d );
+
+    double computeTriangleArea2d(const FloatArray &coordsA, const FloatArray &coordsB, const FloatArray &coordsC);
 
     bool intersectionTestSegmentTrianglePlucker3D(FloatArray &intersectCoords, const FloatArray &A, const FloatArray &B, const FloatArray &C, const FloatArray &X1, const FloatArray &X2 );
 
@@ -89,6 +91,9 @@ public:
     int intersectionTestSegmentTriangle2D(std::vector<FloatArray> &intersectCoords, const FloatArray &A, const FloatArray &B, const FloatArray &C, const FloatArray &U1, const FloatArray &U2 );
 
     void transformStiffnessTensorToMatrix(FloatMatrix &matrix, const FloatMatrix &tensor );
+
+    bool applyAdaptiveUpdate(Domain *d);
+
 };
 } // end namespace oofem
 #endif // quasicontinuum_h

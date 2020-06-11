@@ -328,6 +328,12 @@ public:
     virtual void initTempStatus(GaussPoint *gp) const;
 
     /**
+     * Initializes temporary variables stored in integration point status
+     * from given data.
+     */
+    virtual void initTempStatusFromData(GaussPoint *gp, const FloatArray &statusData) const;
+
+    /**
      * Stores receiver state to output stream.
      * @param stream Output stream.
      * @param mode Determines amount of info required in stream (state, definition, ...).

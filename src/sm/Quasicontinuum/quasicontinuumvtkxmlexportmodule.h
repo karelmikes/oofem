@@ -66,11 +66,11 @@ protected:
     int deactivatedElementsExportFlag;
 
     /// List of InternalStateType values, identifying the selected vars for export.
-    IntArray internalVarsToExport;
+   IntArray internalVarsToExport;
     /// List of primary unknowns to export.
-    IntArray primaryVarsToExport;
+   IntArray primaryVarsToExport;
     /// List of cell data to export.
-    IntArray cellVarsToExport;
+   IntArray cellVarsToExport;
 
 public:
     /// Constructor. Creates empty Output Manager. By default all components are selected.
@@ -97,6 +97,11 @@ protected:
                         int &regionDofMans, 
                         int &totalcells,
                         Domain *domain, TimeStep *tStep, int reg) override;
+
+    //  Exports cell variables (typically internal variables).
+    //
+    void exportCellVars_km(VTKPiece &piece, const IntArray &elems, TimeStep *tStep);
+
 };
 } // end namespace oofem
 #endif // quasicontinuumvtkxmlexportmodule_h

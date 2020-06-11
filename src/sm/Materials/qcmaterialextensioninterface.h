@@ -58,9 +58,16 @@ public:
     QCMaterialExtensionInterface() {}
     /// Destructor.
     virtual ~QCMaterialExtensionInterface() { }
-    //
+    
+    // for material of to-be-homogenize links
     virtual double giveQcElasticParamneter() = 0;
     virtual double giveQcPlasticParamneter() = 0;
+    virtual double giveQcPlasticHardeningParamneter() = 0;
+    virtual void computeStatusDataFromStrain(FloatArray &statusData, FloatArray strain) = 0;
+
+    // for materila of homogenized (interpolation) elements
+    virtual double giveValueOfQcAdapriveRefinementCriterion(Element *e, int criterionType) = 0;
+    
 };
 }
 #endif

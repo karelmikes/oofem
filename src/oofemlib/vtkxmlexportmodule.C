@@ -1809,7 +1809,7 @@ VTKXMLExportModule::exportCellVars(VTKPiece &vtkPiece, const IntArray &elems, Ti
     vtkPiece.setNumberOfCellVarsToExport(cellVarsToExport.giveSize(), elems.giveSize() );
     for ( int field = 1; field <= cellVarsToExport.giveSize(); field++ ) {
         InternalStateType type = ( InternalStateType ) cellVarsToExport.at(field);
-
+	int subIndex_activated = 0;
         for ( int subIndex = 1; subIndex <= elems.giveSize(); ++subIndex ) {
             Element *el = d->giveElement(elems.at(subIndex) );  ///@todo should be a pointer to an element in the region /JB
             if ( el->giveParallelMode() != Element_local ) {
@@ -1817,7 +1817,20 @@ VTKXMLExportModule::exportCellVars(VTKPiece &vtkPiece, const IntArray &elems, Ti
             }
 
             this->getCellVariableFromIS(valueArray, el, type, tStep);
-            vtkPiece.setCellVar(field, subIndex, valueArray);
+	    // vtkPiece.setCellVar(field, subIndex, valueArray); // km ???????? this line is replaced by the following
+	    // TODO do it in QcVTKXMLEXp....
+
+
+	    // km ????????
+            //if ( !deactivatedElementsExportFlag & !emodel->isElementActivated(el) ) { // Skip elements that are deactivated by QC
+	    if ( !emodel->isElementActivated(el) ) { // Skip elements that are deactivated by QC
+	      continue;
+	    } else {
+	      subIndex_activated++;
+	      vtkPiece.setCellVar(field, subIndex_activated, valueArray);
+	    }
+
+	    
         }
     }
 }
