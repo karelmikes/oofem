@@ -1768,7 +1768,8 @@ Quasicontinuum :: applyAdaptiveUpdate(Domain *d)
       IntArray refinedNodes;
       for ( int i = 1; i <= d->giveNumberOfDofManagers(); i++ ) {
 	qcNode *qn = static_cast< qcNode * >( d->giveNode(i) );
-	qn->setAsRepnode();
+	//qn->setAsRepnode();
+	
 	if (refinedElemnts.contains(qn->giveMasterElementNumber())) {
 	  refinedNodes.followedBy(i);
 	}
@@ -1932,6 +1933,11 @@ Quasicontinuum :: applyAdaptiveUpdate(Domain *d)
     
 
 
+    // set the hanging nodes as rep nodes
+    for ( int i = 1; i <= d->giveNumberOfDofManagers(); i++ ) {
+      qcNode *qn = static_cast< qcNode * >( d->giveNode(i) );
+      qn->setAsRepnode();
+    }
 
       
       

@@ -96,7 +96,7 @@ protected:
     QuasicontinuumNumberingscheme qcEquationNumbering;
 
     int initFlag;
-	
+    
     int qcApproach; // 0-full, 1-hn, 2-global homog., 3 local homog.
     int homogenizationMtrxType; // 1-iso, 2-aniso
     int generateParticles;
@@ -170,6 +170,8 @@ public:
     UnknownNumberingScheme &giveEquationNumbering() override { return this->qcEquationNumbering; }
 
     void updateYourself(TimeStep *tStep) override;
+ 
+
 };
 
 

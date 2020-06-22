@@ -273,6 +273,21 @@ void qcNode :: setAsRepnode()
     if ( this->giveDofTypeMap() !=  NULL ) {
         this->giveDofTypeMap()->clear();
     }
+
+    std::vector< Dof * > local_dofArray;
+    for (int i = 0; i< dofArray.size(); i++) { 
+      local_dofArray.push_back(dofArray[i]);
+    }
+
+    for ( int j = 0; j < local_dofArray.size(); j++ ) {
+      Dof *d = local_dofArray.at(j);
+      DofIDItem didi = d->giveDofID();
+      this->removeDof(didi);
+      Dof *new_dof = classFactory.createDof(DT_master, didi, this);
+      this->appendDof(new_dof);  
+    }
+    
+
     this->qcNodeTypeLabel = 1;
 }
 void qcNode :: setAsHanging()
@@ -319,4 +334,7 @@ void qcNode :: printOutputAt(FILE *stream, TimeStep *tStep)
         OOFEM_WARNING( "Node %d cannot be printed out: unknown QcNodeType", this->giveGlobalNumber() );
     }
 }
+
+
+
 } // end namespace oofem

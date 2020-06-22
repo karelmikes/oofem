@@ -88,6 +88,7 @@ public:
     void initializeFrom(InputRecord &ir) override;
     void postInitialize() override;
     void postInitializeAsHangingNode();
+
     int checkConsistency() override;
     bool isDofTypeCompatible(dofType type) const override { return ( type == DT_master || type == DT_slave ); }
 

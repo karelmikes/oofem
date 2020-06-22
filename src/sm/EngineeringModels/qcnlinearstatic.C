@@ -759,16 +759,20 @@ QcNonLinearStatic :: updateYourself(TimeStep *tStep)
     //Quasicontinuum qc;
     bool updateFlag = false;
     updateFlag = qc.applyAdaptiveUpdate( this->giveDomain(1) );
-
+    
     // renumbering after refinement ??
     if ( updateFlag ) {
       //qcEquationNumbering.reset();
       qcEquationNumbering.init(this->giveDomain(1), activatedNodeList, tStep);
     }
 
-
+    this->forceEquationNumbering();
 }
 
+
+
+
+  
 
 
 } // end namespace oofem
