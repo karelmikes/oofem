@@ -758,12 +758,37 @@ QcNonLinearStatic :: updateYourself(TimeStep *tStep)
 
     //Quasicontinuum qc;
     bool updateFlag = false;
-    updateFlag = qc.applyAdaptiveUpdate( this->giveDomain(1) );
+    std::vector<FloatArray> tempDipsl;
+    updateFlag = qc.applyAdaptiveUpdate( this->giveDomain(1), tStep, tempDipsl);
     
     // renumbering after refinement ??
     if ( updateFlag ) {
-      //qcEquationNumbering.reset();
+      qcEquationNumbering.reset();
       qcEquationNumbering.init(this->giveDomain(1), activatedNodeList, tStep);
+      int neq = qcEquationNumbering.giveTotalNumberOfEquations();
+      int pres_neq = qcEquationNumbering.giveTotalNumberOfPrescribedEquations();
+      totalDisplacement.resize(neq);
+      totalDisplacement.zero();
+
+      incrementOfDisplacement.resize(neq);
+      incrementOfDisplacement.zero();
+
+      initialLoadVector.resize(neq);
+      incrementalLoadVector.resize(neq);
+      incrementalLoadVectorOfPrescribed.resize(pres_neq);
+      
+
+      for (int i = 1; i <= this->giveDomain(1)->giveNumberOfDofManagers(); i++) {	
+	Node* n = this->giveDomain(1)->giveNode(i);      
+	IntArray locationArray;
+	FloatArray n_displacement;
+	n->giveCompleteLocationArray(locationArray,qcEquationNumbering);
+	n_displacement = tempDipsl[i-1];
+	totalDisplacement.assemble(n_displacement, locationArray);
+      }
+
+      
+      
     }
 
     this->forceEquationNumbering();

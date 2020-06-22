@@ -263,6 +263,8 @@ void DofManager :: giveCompleteMasterDofIDArray(IntArray &dofIDArray) const
 }
 
 
+
+
 std :: vector< Dof* > :: const_iterator  DofManager :: findDofWithDofId(DofIDItem dofID) const
 {
     int i = 0;

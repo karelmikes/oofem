@@ -1724,7 +1724,7 @@ Quasicontinuum :: transformStiffnessTensorToMatrix(FloatMatrix &matrix, const Fl
 
 
 bool
-Quasicontinuum :: applyAdaptiveUpdate(Domain *d)
+Quasicontinuum :: applyAdaptiveUpdate(Domain *d, TimeStep *tStep, std::vector<FloatArray> &displacementList)
 // applyAdaptiveUpdate
 {
     bool refineFlag = false;
@@ -1931,12 +1931,19 @@ Quasicontinuum :: applyAdaptiveUpdate(Domain *d)
 
 
     
-
+    
 
     // set the hanging nodes as rep nodes
     for ( int i = 1; i <= d->giveNumberOfDofManagers(); i++ ) {
-      qcNode *qn = static_cast< qcNode * >( d->giveNode(i) );
-      qn->setAsRepnode();
+      IntArray dofIDArray;
+      FloatArray displacement;
+      Node *n = d->giveNode(i);
+      n->giveCompleteUnknownVector(displacement,VM_Total ,tStep);
+      displacementList.push_back(displacement);
+      qcNode *qn = static_cast< qcNode * >( n );
+      if(qn->giveQcNodeType() == 2 && this->nodeList.at(i) == 1 ) {
+	qn->setAsRepnode();
+      }
     }
 
       
