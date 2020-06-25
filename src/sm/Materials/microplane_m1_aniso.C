@@ -450,8 +450,9 @@ M1anisoMaterial :: giveValueOfQcAdapriveRefinementCriterion(Element *e, int crit
     FloatArray sigmaN, sigmaNyield;
     for ( auto &gp : *e->giveDefaultIntegrationRulePtr() ) {	
         M1anisoMaterialStatus *status = static_cast< M1anisoMaterialStatus * >( this->giveStatus(gp) );
-	this->initTempStatus(gp);
-	sigmaN = status->giveNormalMplaneStresses();
+	//this->initTempStatus(gp);
+	//test for solving the same step with refinement, orignally:sigmaN = status->giveNormalMplaneStresses();
+	sigmaN = status->giveTempNormalMplaneStresses();
 	sigmaNyield = status->giveNormalMplaneYieldStresses();
 	int plasticMicroplaneCounter = 0;
 	
@@ -541,7 +542,7 @@ M1anisoMaterialStatus :: initTempStatus()
 }
 
 void
-M1anisoMaterialStatus :: printOutputAt(FILE *file, TimeStep *tStep)
+M1anisoMaterialStatus :: printOutputAt(FILE *file, TimeStep *tStep) const
 {
     StructuralMaterialStatus :: printOutputAt(file, tStep);
     fprintf(file, "status { sigN ");

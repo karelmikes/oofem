@@ -156,7 +156,7 @@ public:
     const FloatArray &giveTempNormalMplaneStresses() { return tempSigN; }
     const FloatArray &giveNormalMplaneYieldStresses() { return sigNyield; }
     void initTempStatus() override;
-    void printOutputAt(FILE *file, TimeStep *tStep);
+    void printOutputAt(FILE *file, TimeStep *tStep) const override;
     void updateYourself(TimeStep *tStep) override;
 
     void saveContext(DataStream &stream, ContextMode mode) override;

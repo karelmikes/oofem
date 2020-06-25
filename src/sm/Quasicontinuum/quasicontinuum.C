@@ -1915,9 +1915,9 @@ Quasicontinuum :: applyAdaptiveUpdate(Domain *d, TimeStep *tStep, std::vector<Fl
       QCMaterialExtensionInterface *qcmei =  static_cast< QCMaterialExtensionInterface * >( e->giveMaterial()->giveInterface(QCMaterialExtensionInterfaceType) );
       if ( !qcmei ) { OOFEM_ERROR("Material doesn't implement the required QC interface!"); }
       qcmei->computeStatusDataFromStrain(statusData, linkStrain);
-
+      statusData.zero();
       // update mat status according to statusData vector
-      //e->initForNewStep(); ??? not necessary
+      //e->initForNewStep(); //??? not necessary
       e->initForAdaptiveUpdate(statusData); 
 
     }// for refined links

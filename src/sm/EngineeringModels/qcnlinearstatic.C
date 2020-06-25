@@ -771,7 +771,6 @@ QcNonLinearStatic :: setActivatedElementList(IntArray elemList)
 void
 QcNonLinearStatic :: updateYourself(TimeStep *tStep)
 {
-    StructuralEngngModel :: updateYourself(tStep);
 
     //Quasicontinuum qc;
     bool updateFlag = false;
@@ -804,11 +803,24 @@ QcNonLinearStatic :: updateYourself(TimeStep *tStep)
 	totalDisplacement.assemble(n_displacement, locationArray);
       }
 
+
+
+      
       
       
     }
 
     this->forceEquationNumbering();
+
+
+    if ( updateFlag ) {
+      this->initializeYourself( tStep );
+      this->solveYourselfAt(tStep);
+    }
+
+    StructuralEngngModel :: updateYourself(tStep);
+
+    
 }
 
 
