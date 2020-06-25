@@ -275,11 +275,11 @@ void qcNode :: setAsRepnode()
     }
 
     std::vector< Dof * > local_dofArray;
-    for (int i = 0; i< dofArray.size(); i++) { 
+    for (int i = 0; i< (int)dofArray.size(); i++) { 
       local_dofArray.push_back(dofArray[i]);
     }
 
-    for ( int j = 0; j < local_dofArray.size(); j++ ) {
+    for ( int j = 0; j < (int)local_dofArray.size(); j++ ) {
       Dof *d = local_dofArray.at(j);
       DofIDItem didi = d->giveDofID();
       this->removeDof(didi);

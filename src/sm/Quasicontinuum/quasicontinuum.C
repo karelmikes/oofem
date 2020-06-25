@@ -1724,7 +1724,7 @@ Quasicontinuum :: transformStiffnessTensorToMatrix(FloatMatrix &matrix, const Fl
 
 
 bool
-Quasicontinuum :: applyAdaptiveUpdate(Domain *d, TimeStep *tStep, std::vector<FloatArray> &displacementList)
+Quasicontinuum :: applyAdaptiveUpdate(Domain *d, TimeStep *tStep, std::vector<FloatArray> &displacementList, int qcAdaptRefType, double qcAdaptRefVal)
 // applyAdaptiveUpdate
 {
     bool refineFlag = false;
@@ -1748,16 +1748,25 @@ Quasicontinuum :: applyAdaptiveUpdate(Domain *d, TimeStep *tStep, std::vector<Fl
 	if ( !qcmei ) {
 	  OOFEM_ERROR("Material doesn't implement the required QC interface!");
 	}
-	double ref_crit = 1.0; // refinement threshold TODO: load from inputFile
-	int criterionType = 1; // define type of ref. criterion TODO: load from inputFile
-	double ref_val = qcmei->giveValueOfQcAdapriveRefinementCriterion(e, criterionType);
-	
+	//double ref_crit = 1.0; // refinement threshold TODO: load from inputFile
+	//int criterionType = 1; // define type of ref. criterion TODO: load from inputFile
 
-	// number of microplanes in plastic state
-	  if (ref_val>ref_crit) {
+	// absolute/relative number of microplanes
+	double ref_val = qcmei->giveValueOfQcAdapriveRefinementCriterion(e, qcAdaptRefType);
+
+	// relative number of microplanes
+	//double ref_val = qcmei->giveValueOfQcAdapriveRefinementCriterion(e, criterionType);
+
+
+	// Test refinement criterion
+	if (qcAdaptRefType == 1 || qcAdaptRefType == 2) {
+	  if (ref_val>qcAdaptRefVal) {
 	    interpolationElementRefinementLabel.at(i) = 1;
 	    refinedElemnts.followedBy(interpolationElementNumbers.at(i));
 	  }
+	} else {
+	  OOFEM_ERROR("Unknown qcAdaptiveRefinementType");	  
+	}
 	
     }
 

@@ -456,18 +456,26 @@ M1anisoMaterial :: giveValueOfQcAdapriveRefinementCriterion(Element *e, int crit
 	int plasticMicroplaneCounter = 0;
 	
 	switch(criterionType) {
-	  case 1:
-	    // number of microplanes in plastic state
-	    for (int i=1; i<=sigmaN.giveSize() ;i++) {
-	      if (sigmaN.at(i) >= 0.99999*sigmaNyield.at(i)) {
-		plasticMicroplaneCounter++;
-	      }
+	case 1:
+	  // absolute number of microplanes in plastic state
+	  for (int i=1; i<=sigmaN.giveSize() ;i++) {
+	    if (sigmaN.at(i) >= 0.99999*sigmaNyield.at(i)) {
+	      plasticMicroplaneCounter++;
 	    }
-	    return plasticMicroplaneCounter;
-	  case 2:
-	    OOFEM_ERROR("this \"criterionType\" is not implemented");
-	  default:
-	    OOFEM_ERROR("invalid parameter \"criterionType\" for Qc adaptive refinement");
+	  }
+	  return plasticMicroplaneCounter;
+	case 2:
+	  // relative number of microplanes in plastic state
+	  for (int i=1; i<=sigmaN.giveSize() ;i++) {
+	    if (sigmaN.at(i) >= 0.99999*sigmaNyield.at(i)) {
+	      plasticMicroplaneCounter++;
+	    }
+	  }
+	  return plasticMicroplaneCounter/nmp;
+	case 3:
+	  OOFEM_ERROR("this \"criterionType\" is not implemented");
+	default:
+	  OOFEM_ERROR("invalid parameter \"qcAdaptRefType\" for Qc adaptive refinement");
 	}
 
     } //for auto gp

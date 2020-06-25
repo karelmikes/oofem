@@ -170,6 +170,23 @@ QcNonLinearStatic :: initializeFrom(InputRecord &ir)
         generateInterpolationElements = 0;
     }
 
+
+    // QC adaptive refinement parameters (type, value)
+    IR_GIVE_FIELD(ir, qcAdaptRefType, _IFT_QuasiContinuum_adaptive_refType);
+    if ( qcAdaptRefType == 1 || qcAdaptRefType == 2 ) {
+        // qcAdaptRefType = 1 -> absolute number of microplanes
+        // qcAdaptRefType = 2 -> relative number of microplanes
+    } else {
+        OOFEM_ERROR("Invalid input field \"qcAdaptRefType\". Value: %d is not supported", qcAdaptRefType);
+    }    
+
+    // TODO: load/test different RefValues for different refTypes
+    IR_GIVE_FIELD(ir, qcAdaptRefVal, _IFT_QuasiContinuum_adaptive_refValue);
+    if ( qcAdaptRefVal < 0  ) {
+        OOFEM_ERROR("Invalid input field \"qcAdaptRefVal\". Value: %d is not supported", qcAdaptRefVal);
+    }    
+
+    
 #ifdef __PARALLEL_MODE
     if ( isParallel() ) {
         commBuff = new CommunicatorBuff( this->giveNumberOfProcesses() );
@@ -759,7 +776,7 @@ QcNonLinearStatic :: updateYourself(TimeStep *tStep)
     //Quasicontinuum qc;
     bool updateFlag = false;
     std::vector<FloatArray> tempDipsl;
-    updateFlag = qc.applyAdaptiveUpdate( this->giveDomain(1), tStep, tempDipsl);
+    updateFlag = qc.applyAdaptiveUpdate( this->giveDomain(1), tStep, tempDipsl, qcAdaptRefType, qcAdaptRefVal);
     
     // renumbering after refinement ??
     if ( updateFlag ) {

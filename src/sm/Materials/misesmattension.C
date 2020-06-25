@@ -195,8 +195,8 @@ MisesMatTension :: performPlasticityReturn(const FloatArray &totalStrain, GaussP
         	if  ( (H<0) & (totalStrain.at(1) >= this->give('s', gp, tStep)/E - this->give('s', gp, tStep)*(E + H)/(E*H) ) )  { 
         	    fullStress.at(1) = 0;
 	            plStrain.at(1) = totalStrain.at(1);
-	            plStrain.at(2) = 0;
-	            plStrain.at(3) = 0;
+	            plStrain.at(2) = -0.5 * totalStrain.at(1);
+	            plStrain.at(3) = -0.5 * totalStrain.at(1);
 	            if (totalStrain.at(1)>kappa) { kappa = totalStrain.at(1); }
     	    } else {
 	            double dKappa = yieldValue / ( H + E );
@@ -578,13 +578,50 @@ MisesMatTension :: give1dStressStiffMtrx(MatResponseMode mode,
 
 
 void
-MisesMatTension :: computeStatusDataFromStrain(FloatArray &statusData, FloatArray strain)
+MisesMatTension :: computeStatusDataFromStrain(FloatArray &statusData, FloatArray totalStrain)
 {
+  /*
   double eps0 = s0/( 9*K*G/(3*K+G) );
   double plStrain = 0;
   if (strain.at(1)>eps0) {plStrain = strain.at(1) - eps0;}
   
   statusData.at(1) = plStrain;
+  */
+
+  double E = 9*K*G/(3*K+G);
+  FloatArray plStrain(6);
+  //plStrain.resize(6);
+  //plStrain.zero();
+  double kappa = 0;
+  double fullS =  E * ( totalStrain.at(1) - plStrain.at(1) ); 
+  double trialS = fullS;
+  //trialS = fabs(trialS);
+
+        /*yield function*/
+    	double yieldStress = (s0 + H * kappa); // km sig0 = this->give('s', gp, tStep)
+    	if (yieldStress<0) {yieldStress=0;} // km
+    	double yieldValue = trialS - yieldStress; // km
+
+        // === radial return algorithm ===
+        if ( yieldValue > 0 ) {
+	        // zero stress if linear softening gives negative stress
+        	if  ( (H<0) & (totalStrain.at(1) >= s0/E - s0*(E + H)/(E*H) ) )  { 
+		  //fullStress.at(1) = 0;
+	            plStrain.at(1) = totalStrain.at(1);
+	            plStrain.at(2) = -0.5 * totalStrain.at(1);
+	            plStrain.at(3) = -0.5 * totalStrain.at(1);
+	            if (totalStrain.at(1)>kappa) { kappa = totalStrain.at(1); }
+    	    } else {
+	            double dKappa = yieldValue / ( H + E );
+	            kappa += dKappa;
+	            plStrain.at(1) += dKappa * signum( fullS );
+        	    plStrain.at(2) -= 0.5 * dKappa * signum( fullS );
+	            plStrain.at(3) -= 0.5 * dKappa * signum( fullS );
+	            //fullStress.at(1) -= dKappa * E * signum( fullS );
+	        }
+        }
+	statusData.at(1) = plStrain.at(1);
+	// TODO: retun also plStrain.at(2-3)
 }
   
 #ifdef __OOFEG
@@ -657,7 +694,7 @@ void MisesMatTensionStatus :: initTempStatusFromData(const FloatArray &statusDat
     plasticStrain.resize(6);
     plasticStrain.zero();
     plasticStrain.at(1) = statusData.at(1);
-    
+    kappa = statusData.at(1);
     tempDamage = damage;
     tempPlasticStrain = plasticStrain;
     tempKappa = kappa;

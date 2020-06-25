@@ -51,6 +51,10 @@
 #define _IFT_QuasiContinuum_generate_Particles "genparticles"
 #define _IFT_QuasiContinuum_generate_Links "genlinks"
 #define _IFT_QuasiContinuum_generate_Interpolation_Elements "geninterpelem"
+// adaptivity
+#define _IFT_QuasiContinuum_adaptive_refType "qcadaptreftype"
+#define _IFT_QuasiContinuum_adaptive_refValue "qcadaptrefval"
+
 
 #define _IFT_QuasiContinuum_t3d_File_Name "t3dfile"
 #define _IFT_QuasiContinuum_interp_Mat_Number "intmatnum"
@@ -105,6 +109,8 @@ protected:
     int interpolationElementsMaterialNumber;
     double defaultT3DMeshSize;
     std::string t3dFileName;
+    int qcAdaptRefType;
+    double qcAdaptRefVal;
 
     std::vector<bool> activatedElementList;
     std::vector<bool> activatedNodeList;

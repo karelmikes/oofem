@@ -92,7 +92,7 @@ public:
 
     void transformStiffnessTensorToMatrix(FloatMatrix &matrix, const FloatMatrix &tensor );
 
-    bool applyAdaptiveUpdate(Domain *d, TimeStep *tStep, std::vector<FloatArray> &displacement);
+    bool applyAdaptiveUpdate(Domain *d, TimeStep *tStep, std::vector<FloatArray> &displacement, int qcAdaptRefType, double qcAdaptRefVal);
 
 };
 } // end namespace oofem
