@@ -1737,8 +1737,7 @@ Quasicontinuum :: applyAdaptiveUpdate(Domain *d, TimeStep *tStep, std::vector<Fl
     interpolationElementRefinementLabel.zero();
     IntArray refinedElemnts;
     // over interpolation elements
-    for ( int i = 1; i <= nInterpelem; i++ ) {
-        int elNum = interpolationElementNumbers.at(i);
+    for ( int i = 1; i <= nInterpelem; i++ ) {        int elNum = interpolationElementNumbers.at(i);
 	if ( elemList.at(elNum)==0 ) {continue; } // skip deactivated elements
 	  
         Element *e;
@@ -1796,11 +1795,19 @@ Quasicontinuum :: applyAdaptiveUpdate(Domain *d, TimeStep *tStep, std::vector<Fl
       }
 
       // new hangingnodes
+      IntArray newHangingNodeList( d->giveNumberOfDofManagers() );
+      newHangingNodeList.zero();
       for ( int i = 1; i <= refinedLinks.giveSize(); i++ ) {
 	int n1 = d->giveElement(refinedLinks.at(i))->giveNode(1)->giveNumber();
 	int n2 = d->giveElement(refinedLinks.at(i))->giveNode(2)->giveNumber();
-	if (!refinedNodes.contains(n1)) { refinedNodes.followedBy(n1); }; // new hanging node
-	if (!refinedNodes.contains(n2)) { refinedNodes.followedBy(n2); }; // new hanging node
+	if (!refinedNodes.contains(n1) && d->giveNode(n1)->giveQcNodeType()==2 ) { // new hanging node
+	  refinedNodes.followedBy(n1);
+	  newHangingNodeList.at(n1) = 1;
+	} 
+	if (!refinedNodes.contains(n2)  && d->giveNode(n2)->giveQcNodeType()==2 ) { // new hanging node
+	  refinedNodes.followedBy(n2);
+	  newHangingNodeList.at(n2) = 1;
+	} 
       }
 
       for ( int i=1; i<=refinedNodes.giveSize(); i++ ) {
@@ -1938,9 +1945,16 @@ Quasicontinuum :: applyAdaptiveUpdate(Domain *d, TimeStep *tStep, std::vector<Fl
 	  // set pl strain and other???
 	  //	}
 
-
-    
-    
+    // apply bc for activated nodes ??km??
+    /*    for ( int i=1; i<=refinedNodes.giveSize(); i++ ) {
+      auto idofman = d->giveDofManager(refinedNodes.at(i));
+      IntArray dofIDArray;
+      idofman->giveCompleteMasterDofIDArray(dofIDArray);
+      for ( auto &dofid : dofIDArray ) {
+	//	idofman->giveDofWithID(dofid)->setBcId( idofman->mBC.at(dofid) );
+/      }      
+    }    
+    */
 
     // set the hanging nodes as rep nodes
     for ( int i = 1; i <= d->giveNumberOfDofManagers(); i++ ) {
@@ -1950,7 +1964,7 @@ Quasicontinuum :: applyAdaptiveUpdate(Domain *d, TimeStep *tStep, std::vector<Fl
       n->giveCompleteUnknownVector(displacement,VM_Total ,tStep);
       displacementList.push_back(displacement);
       qcNode *qn = static_cast< qcNode * >( n );
-      if(qn->giveQcNodeType() == 2 && this->nodeList.at(i) == 1 ) {
+      if(qn->giveQcNodeType() == 2 && this->nodeList.at(i) == 1 && newHangingNodeList.at(i) == 0 ) {
 	qn->setAsRepnode();
       }
     }

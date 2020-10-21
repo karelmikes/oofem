@@ -283,7 +283,7 @@ void qcNode :: setAsRepnode()
       Dof *d = local_dofArray.at(j);
       DofIDItem didi = d->giveDofID();
       this->removeDof(didi);
-      Dof *new_dof = classFactory.createDof(DT_master, didi, this);
+      Dof *new_dof = classFactory.createDof(DT_master, didi, this);      
       this->appendDof(new_dof);  
     }
     

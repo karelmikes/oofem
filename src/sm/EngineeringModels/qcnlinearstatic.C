@@ -88,9 +88,9 @@ void
 QcNonLinearStatic :: initializeFrom(InputRecord &ir)
 {
     NonLinearStatic :: initializeFrom(ir);
-
+    
     IR_GIVE_FIELD(ir, qcApproach, _IFT_QuasiContinuum_approach);
-
+    
     if ( qcApproach == 0 || qcApproach == 1 || qcApproach == 2 || qcApproach == 3 ) {
         // approach A0 = full solved particle model
         // A1 hanging nodes, interpolation only
@@ -201,7 +201,8 @@ QcNonLinearStatic :: initializeFrom(InputRecord &ir)
 void
 QcNonLinearStatic :: postInitialize()
 {
-    // checkout print of dof type before interpolation mesh is generated (1/2 = RN/HN)
+
+  // checkout print of dof type before interpolation mesh is generated (1/2 = RN/HN)
     /*
      * for (int i=1; i<=this->giveDomain(1)->giveNumberOfDofManagers(); i++)
      *  {
@@ -792,7 +793,15 @@ QcNonLinearStatic :: updateYourself(TimeStep *tStep)
       initialLoadVector.resize(neq);
       incrementalLoadVector.resize(neq);
       incrementalLoadVectorOfPrescribed.resize(pres_neq);
-      
+
+
+      // test - print code numbers fo all nodes
+      for (int i = 1; i <= this->giveDomain(1)->giveNumberOfDofManagers(); i++) {	
+	Node* n = this->giveDomain(1)->giveNode(i);      
+	IntArray locationArray;
+	n->giveCompleteLocationArray(locationArray,qcEquationNumbering);
+	locationArray.printYourself();
+      }   
 
       for (int i = 1; i <= this->giveDomain(1)->giveNumberOfDofManagers(); i++) {	
 	Node* n = this->giveDomain(1)->giveNode(i);      
@@ -820,6 +829,7 @@ QcNonLinearStatic :: updateYourself(TimeStep *tStep)
 
     StructuralEngngModel :: updateYourself(tStep);
 
+ 
     
 }
 
