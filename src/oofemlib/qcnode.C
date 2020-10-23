@@ -38,6 +38,7 @@
 #include "sm/EngineeringModels/qclinearstatic.h"
 #include "sm/EngineeringModels/qcnlinearstatic.h"
 #include "hangingnode.h"
+#include "masterdof.h"
 #include "slavedof.h"
 #include "floatarray.h"
 #include "intarray.h"
@@ -283,8 +284,10 @@ void qcNode :: setAsRepnode()
       Dof *d = local_dofArray.at(j);
       DofIDItem didi = d->giveDofID();
       this->removeDof(didi);
-      Dof *new_dof = classFactory.createDof(DT_master, didi, this);      
-      this->appendDof(new_dof);  
+      MasterDof *masterDof = new MasterDof( this, this->giveBcMap()->find((int)didi)->second , 0, didi );
+      this->appendDof(masterDof);
+      //Dof *new_dof = classFactory.createDof(DT_master, didi, this);      
+      // this->appendDof(new_dof);  
     }
     
 

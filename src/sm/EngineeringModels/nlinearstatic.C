@@ -438,6 +438,27 @@ NonLinearStatic :: updateLoadVectors(TimeStep *tStep)
 
 
 void
+NonLinearStatic :: updateStiffnessMatrix(int di, TimeStep *tStep)
+{
+  if ( !stiffnessMatrix ) {
+    stiffnessMatrix = classFactory.createSparseMtrx(sparseMtrxType);
+  }
+
+  if ( !stiffnessMatrix ) {
+    OOFEM_ERROR("sparse matrix creation failed");
+  }
+
+  if ( nonlocalStiffnessFlag ) {
+    if ( !stiffnessMatrix->isAsymmetric() ) {
+      OOFEM_ERROR("stiffnessMatrix does not support asymmetric storage");
+    }
+  }
+
+  stiffnessMatrix->buildInternalStructure( this, di, EModelDefaultEquationNumbering() );
+}
+
+
+void
 NonLinearStatic :: proceedStep(int di, TimeStep *tStep)
 {
     //

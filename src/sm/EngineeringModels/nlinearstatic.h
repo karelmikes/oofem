@@ -199,6 +199,7 @@ protected:
 
     void packMigratingData(TimeStep *tStep) override;
     void unpackMigratingData(TimeStep *tStep) override;
+    virtual void updateStiffnessMatrix(int di, TimeStep *tStep);
 };
 } // end namespace oofem
 #endif // nlinearstatic_h

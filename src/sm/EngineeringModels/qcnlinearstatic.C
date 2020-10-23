@@ -796,20 +796,24 @@ QcNonLinearStatic :: updateYourself(TimeStep *tStep)
 
 
       // test - print code numbers fo all nodes
-      for (int i = 1; i <= this->giveDomain(1)->giveNumberOfDofManagers(); i++) {	
+      /*      for (int i = 1; i <= this->giveDomain(1)->giveNumberOfDofManagers(); i++) {	
 	Node* n = this->giveDomain(1)->giveNode(i);      
 	IntArray locationArray;
 	n->giveCompleteLocationArray(locationArray,qcEquationNumbering);
 	locationArray.printYourself();
       }   
-
+      */
       for (int i = 1; i <= this->giveDomain(1)->giveNumberOfDofManagers(); i++) {	
-	Node* n = this->giveDomain(1)->giveNode(i);      
-	IntArray locationArray;
-	FloatArray n_displacement;
-	n->giveCompleteLocationArray(locationArray,qcEquationNumbering);
-	n_displacement = tempDipsl[i-1];
-	totalDisplacement.assemble(n_displacement, locationArray);
+	Node* n = this->giveDomain(1)->giveNode(i);
+	qcNode *qcN = dynamic_cast< qcNode *>(n);
+	if(qcN->giveQcNodeType() == 1) {
+	  IntArray locationArray;
+	  FloatArray n_displacement;
+	
+	  n->giveCompleteLocationArray(locationArray,qcEquationNumbering);
+	  n_displacement = tempDipsl[i-1];
+	  totalDisplacement.assemble(n_displacement, locationArray);
+	}
       }
 
 
@@ -823,6 +827,7 @@ QcNonLinearStatic :: updateYourself(TimeStep *tStep)
 
 
     if ( updateFlag ) {
+      this->updateStiffnessMatrix(1, tStep);
       this->initializeYourself( tStep );
       this->solveYourselfAt(tStep);
     }
