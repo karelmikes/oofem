@@ -1737,10 +1737,10 @@ Quasicontinuum :: applyAdaptiveUpdate(Domain *d, TimeStep *tStep, std::vector<Fl
     interpolationElementRefinementLabel.zero();
     IntArray refinedElemnts;
     // over interpolation elements
-    for ( int i = 1; i <= nInterpelem; i++ ) {        int elNum = interpolationElementNumbers.at(i);
+    for ( int i = 1; i <= nInterpelem; i++ ) {
+        int elNum = interpolationElementNumbers.at(i);
 	if ( elemList.at(elNum)==0 ) {continue; } // skip deactivated elements
-	  
-        Element *e;
+	Element *e;
 	e = d->giveElement(elNum);
 	
 	QCMaterialExtensionInterface *qcmei =  static_cast< QCMaterialExtensionInterface * >( e->giveMaterial()->giveInterface(QCMaterialExtensionInterfaceType) );

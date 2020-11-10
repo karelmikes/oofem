@@ -793,10 +793,24 @@ QcNonLinearStatic :: updateYourself(TimeStep *tStep)
       initialLoadVector.resize(neq);
       incrementalLoadVector.resize(neq);
       incrementalLoadVectorOfPrescribed.resize(pres_neq);
-
-
+      // km: incrementalLoadVector needs to be updated, but this update is not working
+      incrementalLoadVector.zero();
+      this->assembleVector(incrementalLoadVector, tStep, ExternalForceAssembler(), VM_Total, qcEquationNumbering, this->giveDomain(1));
+      //incrementalLoadVector.at(6)=-1; // manual test !!!!
+      
+      // km: update incrementalLoadVectorOfPrescribed? How? The following is not working
+      /*
+      //incrementalLoadVectorOfPrescribed.zero();
+      //this->assembleVector(incrementalLoadVectorOfPrescribed, tStep, ExternalForceAssembler(),
+      //                       VM_Total, qcEquationNumbering, this->giveDomain(1));
+      //this->updateSharedDofManagers(incrementalLoadVector, qcEquationNumbering, LoadExchangeTag);
+      
+      // this->assembleIncrementalReferenceLoadVectors(incrementalLoadVector, incrementalLoadVectorOfPrescribed, refLoadInputMode, this->giveDomain(1), tStep);
+      */
+      
       // test - print code numbers fo all nodes
-      /*      for (int i = 1; i <= this->giveDomain(1)->giveNumberOfDofManagers(); i++) {	
+      /*
+      for (int i = 1; i <= this->giveDomain(1)->giveNumberOfDofManagers(); i++) {	
 	Node* n = this->giveDomain(1)->giveNode(i);      
 	IntArray locationArray;
 	n->giveCompleteLocationArray(locationArray,qcEquationNumbering);

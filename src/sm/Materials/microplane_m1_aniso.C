@@ -460,7 +460,8 @@ M1anisoMaterial :: giveValueOfQcAdapriveRefinementCriterion(Element *e, int crit
 	case 1:
 	  // absolute number of microplanes in plastic state
 	  for (int i=1; i<=sigmaN.giveSize() ;i++) {
-	    if (sigmaN.at(i) >= 0.99999*sigmaNyield.at(i)) {
+	    //if (sigmaN.at(i) >= 0.99999*sigmaNyield.at(i)) {
+	    if (sigmaN.at(i) >= 0.0000016*sigmaNyield.at(i)) {
 	      plasticMicroplaneCounter++;
 	    }
 	  }
