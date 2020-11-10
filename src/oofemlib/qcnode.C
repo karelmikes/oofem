@@ -324,12 +324,12 @@ void qcNode :: printOutputAt(FILE *stream, TimeStep *tStep)
     EngngModel *emodel = this->giveDomain()->giveEngngModel();
 
     if ( this->giveQcNodeType() == 1 ) {
-        fprintf( stream, "%-8s R%8d (%8d):\n", this->giveClassName(), this->giveLabel(), this->giveNumber() );
+        fprintf( stream, "%s_R%8d (%8d):\n", this->giveClassName(), this->giveLabel(), this->giveNumber() );
         for ( Dof *dof : *this ) {
             emodel->printDofOutputAt(stream, dof, tStep);
         }
     } else if ( this->giveQcNodeType() == 2 ) {
-        fprintf( stream, "%-8s H%8d (%8d): el. %8d\n", this->giveClassName(), this->giveLabel(), this->giveNumber(), this->giveMasterElementNumber() );
+        fprintf( stream, "%s_H%8d (%8d): el. %8d\n", this->giveClassName(), this->giveLabel(), this->giveNumber(), this->giveMasterElementNumber() );
         for ( Dof *dof : *this ) {
             emodel->printDofOutputAt(stream, dof, tStep);
         }
