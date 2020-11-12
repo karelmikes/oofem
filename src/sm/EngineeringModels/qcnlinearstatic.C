@@ -777,7 +777,7 @@ QcNonLinearStatic :: updateYourself(TimeStep *tStep)
     bool updateFlag = false;
     std::vector<FloatArray> tempDipsl;
     updateFlag = qc.applyAdaptiveUpdate( this->giveDomain(1), tStep, tempDipsl, qcAdaptRefType, qcAdaptRefVal);
-    
+    renumberFlag = updateFlag;
     // renumbering after refinement ??
     if ( updateFlag ) {
       qcEquationNumbering.reset();
@@ -794,8 +794,6 @@ QcNonLinearStatic :: updateYourself(TimeStep *tStep)
       incrementalLoadVector.resize(neq);
       incrementalLoadVectorOfPrescribed.resize(pres_neq);
       // km: incrementalLoadVector needs to be updated, but this update is not working
-      incrementalLoadVector.zero();
-      this->assembleVector(incrementalLoadVector, tStep, ExternalForceAssembler(), VM_Total, qcEquationNumbering, this->giveDomain(1));
       //incrementalLoadVector.at(6)=-1; // manual test !!!!
       
       // km: update incrementalLoadVectorOfPrescribed? How? The following is not working
@@ -838,11 +836,14 @@ QcNonLinearStatic :: updateYourself(TimeStep *tStep)
     }
 
     this->forceEquationNumbering();
-
+    
 
     if ( updateFlag ) {
       this->updateStiffnessMatrix(1, tStep);
       this->initializeYourself( tStep );
+      incrementalLoadVector.zero();
+      this->assembleVector(incrementalLoadVector_2, tStep, ExternalForceAssembler(), VM_Total, EModelDefaultEquationNumbering(), this->giveDomain(1));
+ 
       this->solveYourselfAt(tStep);
     }
 
